@@ -1,4 +1,4 @@
-import { Component, componentRegistry, $, esc } from '../components.js';
+import { Component, componentRegistry, $, $$, esc } from '../components.js';
 
 /**
  * MainContent 组件
