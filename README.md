@@ -41,7 +41,7 @@ Anthropic
 
 | 端点 | 说明 |
 |------|------|
-| `GET /status` | Web 管理面板（总览 / 配置编辑 / 活动日志） |
+| `GET /status` | Web 管理面板（总览 / 路由日志 / 供应商 / 配置编辑 / API 检查 / 参数白名单） |
 | `GET /health` | JSON 健康检查 |
 | `GET /api/stats` | 路由统计 JSON |
 | `GET /api/config` | 读写 config.yaml |

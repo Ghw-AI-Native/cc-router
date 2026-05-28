@@ -48,10 +48,11 @@ cc-router 是一个本地运行的轻量级 HTTP 反向代理，部署在 Claude
 
 本代理支持 9 种 provider 类型（deepseek / dashscope / zhipu / moonshot / minimax / stepfun / siliconflow / openrouter / anthropic + 各国际版变体），内置 23 个预设。
 
-实际实现为三文件结构：
+实际实现为四层结构：
 - `config.py` — 配置管理 + 23 个供应商预设 + 参数白名单
 - `core.py` — 递归图片检测 + 参数过滤 + 请求转发 + SSE 流式
-- `router.py` — Starlette 入口 + Web 管理面板
+- `router.py` — Starlette 入口 + API 端点 + 静态文件服务
+- `index.html` + `main.js` + `components.js` + `components/*.js` — 组件化 SPA Web UI
 
 ## 3. 数据流
 
@@ -147,9 +148,13 @@ load_config()
 
 #### GET /status
 
-返回 HTML 状态页面，展示：
-- 当前路由配置（后端名称、模型、端点）
-- 运行统计（运行时间、请求数、路由分布、错误数）
+返回组件化 SPA 管理面板（`index.html` + ES6 模块），6 个视图：
+- 总览 — 服务状态、路由策略、请求统计、后端配置、最近日志、路由分布
+- 路由日志 — 最近 50 条路由决策，可筛选
+- 供应商 — 23 个内置预设展示，标注当前启用的后端
+- 配置 — YAML 编辑器，保存后热重载生效
+- API 检查 — 各端点健康状态 JSON 展示
+- 参数白名单 — 当前后端的参数过滤策略
 
 #### GET /health
 
@@ -159,6 +164,34 @@ load_config()
   "uptime": 3600
 }
 ```
+
+#### GET /api/stats
+
+```json
+{
+  "text": 42,
+  "multimodal": 8,
+  "errors": 1,
+  "uptime": 3600,
+  "total": 51,
+  "text_backend": {"name": "DeepSeek V4 Pro", "model": "...", "provider": "deepseek", "url": "..."},
+  "multimodal_backend": {"name": "Qwen-VL-Max via 百炼", "model": "...", "provider": "dashscope", "url": "..."},
+  "server": {"host": "127.0.0.1", "port": 8082},
+  "recent": [{"time": "14:30:01", "route": "multimodal", "has_image": true, ...}]
+}
+```
+
+#### GET /api/config
+
+返回当前 `config.yaml` 内容和文件修改时间。支持 POST 保存新配置（验证 YAML 语法后写入，下次请求自动热重载）。
+
+#### GET /api/presets
+
+返回 23 个供应商预设（名称、base_url、auth 方式）。
+
+#### GET /{path:path}
+
+静态文件服务，仅允许 `.js` / `.css` / `.html` 扩展名，带路径穿越保护。为前端 ES6 模块导入链提供服务。
 
 ## 5. 核心模块详细设计
 
