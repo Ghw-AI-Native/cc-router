@@ -1,0 +1,21 @@
+server:
+  host: "127.0.0.1"
+  port: 8082
+
+text:
+  name: "DeepSeek V4 Pro"
+  base_url: "https://api.deepseek.com/anthropic"
+  api_key: "sk-YOUR-DEEPSEEK-KEY"
+  model: "deepseek-v4-pro[1m]"
+  provider: "deepseek"
+
+multimodal:
+  name: "Qwen-VL-Max via 百炼"
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode"
+  api_key: "sk-YOUR-DASHSCOPE-KEY"
+  model: "qwen-vl-max"
+  provider: "dashscope"
+
+logging:
+  level: "INFO"
+  log_file: null

@@ -1,0 +1,4 @@
+__pycache__/
+.pytest_cache/
+.claude/checkup-state.json
+.claude/checkup-reports/
