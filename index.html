@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>cc-router 控制台</title>
+<style>
+:root{
+  --canvas:#edf2f4;--shell:#f9fbfc;--surface:#fff;--subtle:#f4f7f9;
+  --ink:#11191f;--soft:#344450;--muted:#697884;--faint:#9aa7b2;
+  --line:#d6dfe6;--line2:#e8edf1;--accent:#087f8c;--accent2:#dff4f6;
+  --blue:#2458d3;--blue2:#e5edff;--green:#087a4a;--green2:#e3f4ea;
+  --violet:#6a45bd;--violet2:#efe9ff;--amber:#a96200;--amber2:#fff0d7;
+  --red:#bd342c;--red2:#fae8e6;--code:#0f1720;
+  --mono:"Cascadia Code","SFMono-Regular",Consolas,monospace;
+  --sans:"Segoe UI","Microsoft YaHei UI",system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:14px;letter-spacing:0}
+body{background:linear-gradient(180deg,rgba(255,255,255,.75),rgba(255,255,255,0) 230px),var(--canvas)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}
+.product{min-height:100vh;display:grid;grid-template-rows:62px 1fr;background:var(--shell)}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 20px;background:rgba(255,255,255,.9);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}.mark{width:32px;height:32px;border-radius:7px;background:linear-gradient(135deg,#11191f 0 50%,var(--accent) 50% 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.brand strong{display:block;font-size:15px;line-height:1.2}.brand code{display:block;margin-top:2px;color:var(--muted);font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+.signals{display:flex;align-items:center;gap:8px;min-width:0}.signal{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);font-size:12px;white-space:nowrap}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(8,122,74,.1)}
+.app{display:grid;grid-template-columns:206px minmax(0,1fr);min-height:calc(100vh - 62px)}
+.rail{background:#f2f6f8;border-right:1px solid var(--line);padding:16px 10px}.rail-label{color:var(--faint);font-size:11px;padding:0 10px 8px}
+.nav{width:100%;height:36px;border:0;border-radius:7px;background:transparent;color:#4b5b66;display:flex;align-items:center;gap:9px;padding:0 10px;margin-bottom:3px;text-align:left}.nav.active{color:var(--accent);background:var(--accent2);font-weight:800}.sq{width:14px;height:14px;border:1.5px solid currentColor;border-radius:4px}
+.local-card{margin:24px 4px 0;padding:12px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.78)}.local-card b{display:block;font-size:12px;margin-bottom:9px}.local-card div{display:flex;justify-content:space-between;gap:10px;margin:7px 0;color:var(--muted);font-size:12px}.local-card code{color:var(--ink);font-family:var(--mono);font-size:11px;font-weight:800}
+.main{min-width:0;padding:20px;background:linear-gradient(90deg,rgba(8,127,140,.06),rgba(8,127,140,0) 38%),#f6f8fa}.view{display:none}.view.active{display:block}
+.hero{display:grid;grid-template-columns:minmax(340px,.82fr) minmax(520px,1.4fr);gap:14px;margin-bottom:14px}.status-hero{min-width:0;min-height:178px;display:flex;flex-direction:column;justify-content:space-between;padding:18px;border-radius:9px;background:var(--code);color:#f7fbff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.eyebrow{margin-bottom:8px;color:#8fa3b2;font-family:var(--mono);font-size:12px}.status-hero h1{margin:0;font-size:41px;line-height:1;letter-spacing:0}.status-hero h1 span{color:#63d9c8}
+.hero-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:18px}.hero-meta div{border-top:1px solid rgba(255,255,255,.12);padding-top:9px}.hero-meta strong{display:block;font-size:17px;line-height:1.15}.hero-meta span{display:block;margin-top:4px;color:#91a5b5;font-size:12px}
+.route-board,.panel{min-width:0;overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:9px}.panel+.panel{margin-top:14px}.head,.panel-head{min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 14px;border-bottom:1px solid var(--line)}.head h2,.panel-head h2{margin:0;font-size:13px}.head span,.panel-head span{color:var(--muted);font-size:12px}
+.route-lanes{display:grid;grid-template-columns:1fr 52px 1fr;gap:10px;align-items:stretch;padding:14px}.lane{min-width:0;padding:13px;border:1px solid var(--line);border-radius:7px;background:var(--subtle)}.lane-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.lane-title strong{font-size:13px}.route-arrow{display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:18px;font-weight:900}
+.mono,code{font-family:var(--mono)}.subtle-code{color:var(--muted);font-family:var(--mono);font-size:11px;overflow-wrap:anywhere}.tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.tag{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--muted);padding:4px 8px;font-size:12px;white-space:nowrap}.tag.blue{background:var(--blue2);color:var(--blue);border-color:#c9d7ff}.tag.green{background:var(--green2);color:var(--green);border-color:#bbdfca}.tag.violet{background:var(--violet2);color:var(--violet);border-color:#d9ceff}.tag.amber{background:var(--amber2);color:var(--amber);border-color:#f3d399}.tag.red{background:var(--red2);color:var(--red);border-color:#f1c3bf}
+.quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}.btn{height:34px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink);padding:0 12px}.btn.primary{border-color:var(--ink);background:var(--ink);color:#fff;font-weight:800}
+.strip{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}.metric{min-height:88px;padding:12px 13px;border:1px solid var(--line);border-radius:7px;background:rgba(255,255,255,.88)}.metric .label{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px;color:var(--muted);font-size:12px}.metric .value{font-size:25px;line-height:1;font-weight:900}.metric .note{margin-top:8px;color:var(--faint);font-size:12px}.metric.ok .value{color:var(--green)}.metric.warn .value{color:var(--amber)}.metric.bad .value{color:var(--red)}
+.grid{min-width:0;display:grid;grid-template-columns:minmax(580px,1.38fr) minmax(330px,.82fr);gap:14px}.panel-body{padding:14px}.backend-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.backend{min-width:0;padding:12px;border:1px solid var(--line);border-radius:7px;background:var(--subtle)}.backend h3{margin:0 0 9px;font-size:13px}.kv{display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;margin:7px 0;font-size:12px}.kv span:first-child{color:var(--muted)}.kv span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+table{width:100%;border-collapse:collapse}th{padding:9px 10px;background:#f4f7f9;color:var(--muted);font-size:11px;text-align:left;border-bottom:1px solid var(--line)}td{padding:10px;border-bottom:1px solid var(--line2);font-size:12px;vertical-align:middle}tr:last-child td{border-bottom:0}.status{font-family:var(--mono);font-weight:900}.status.good{color:var(--green)}.status.fail{color:var(--red)}
+.right-stack{display:grid;gap:14px}.bar-row{display:grid;grid-template-columns:76px 1fr 42px;align-items:center;gap:10px;margin-bottom:11px;font-size:12px}.track{height:10px;background:#e9eff3;border-radius:999px;overflow:hidden}.fill{height:100%;border-radius:999px}.fill.text{width:0;background:var(--blue)}.fill.image{width:0;background:var(--violet)}.fill.stream{width:0;background:var(--green)}.fill.err{width:0;background:var(--red)}
+.reload{border-radius:7px;background:var(--code);color:#f7fbff;padding:14px;margin-bottom:10px}.reload .path{margin-bottom:9px;color:#91a5b5;font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}.reload strong{display:block;margin-bottom:8px;font-size:22px;line-height:1}.list{display:grid;gap:8px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:var(--subtle);font-size:12px}.state{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-family:var(--mono);font-size:11px;white-space:nowrap}.state.ok{color:var(--green);background:var(--green2)}.state.warn{color:var(--amber);background:var(--amber2)}.state.err{color:var(--red);background:var(--red2)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}.filters button{height:27px;border:1px solid var(--line);background:#fff;border-radius:7px;color:var(--muted);padding:0 9px;font-size:12px}.filters button.active{color:var(--accent);background:var(--accent2);border-color:#b9dde2;font-weight:800}.hidden-row{display:none}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:14px}.section-head h1{margin:0 0 5px;font-size:25px;line-height:1.12}.section-head p{margin:0;color:var(--muted);font-size:13px}
+.provider-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.provider{min-height:150px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}.provider.active{outline:2px solid #b9dde2;background:#fbfefe}.provider h3{margin:0 0 8px;font-size:14px}.provider p{min-height:34px;margin:0 0 10px;color:var(--muted);line-height:1.45;font-size:12px}.provider .base{color:var(--faint);font-size:11px;word-break:break-all}
+.config-layout{display:grid;grid-template-columns:minmax(500px,1fr) 340px;gap:14px}.editor{width:100%;min-height:476px;resize:vertical;border:0;border-radius:7px;background:var(--code);color:#e8f0f6;padding:16px;font-family:var(--mono);font-size:12px;line-height:1.7;outline:0}.api-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.api-card{overflow:hidden;background:var(--surface);border:1px solid var(--line);border-radius:8px}.api-top{display:flex;justify-content:space-between;gap:12px;padding:12px 13px;border-bottom:1px solid var(--line)}.api-card pre{min-height:118px;margin:0;overflow:auto;background:var(--code);color:#e8f0f6;padding:13px;font-family:var(--mono);font-size:12px;line-height:1.55}
+.toast{position:fixed;right:18px;top:18px;z-index:10;max-width:380px;transform:translateY(-8px);opacity:0;pointer-events:none;transition:.18s ease;border-radius:7px;padding:10px 12px;background:var(--ink);color:#fff;box-shadow:0 12px 40px rgba(17,25,31,.2)}.toast.show{transform:translateY(0);opacity:1}.toast.err{background:var(--red)}
+@media(max-width:1140px){.hero,.grid,.config-layout{grid-template-columns:1fr}.strip{grid-template-columns:repeat(2,1fr)}.provider-grid,.api-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.app{grid-template-columns:1fr}.rail{display:none}}
+@media(max-width:760px){.topbar,.signals{align-items:flex-start;flex-direction:column;height:auto}.topbar{padding:14px}.main{padding:12px}.strip,.backend-pair,.provider-grid,.api-grid{grid-template-columns:1fr}.route-lanes{grid-template-columns:1fr}.route-arrow{height:18px}.head,.panel-head,.section-head{height:auto;min-height:44px;align-items:flex-start;flex-direction:column;padding:11px 14px}.status-hero h1{font-size:38px}.quick-actions,.filters{width:100%}.quick-actions .btn{flex:1 1 100%}.kv span:last-child,.subtle-code,.reload .path,.provider .base,code{overflow-wrap:anywhere;white-space:normal}.panel.table-wrap{overflow-x:auto}.panel.table-wrap table{min-width:680px}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="main.js"></script>
+<script type="module">
+// Fallback: detect if the component app failed to bootstrap.
+// If #app is still empty after 3s, show an error message.
+setTimeout(function () {
+  var app = document.getElementById('app');
+  if (app && app.children.length === 0) {
+    app.innerHTML = '<div style="padding:2em;text-align:center;font-family:system-ui,sans-serif"><h2>cc-router 控制台加载失败</h2><p>请检查浏览器控制台 (F12) 查看具体错误。</p><p>可尝试硬刷新 (Ctrl+Shift+R) 或检查服务器日志。</p></div>';
+  }
+}, 3000);
+</script>
+</body>
+</html>

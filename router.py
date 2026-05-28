@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -15,7 +16,7 @@ import uvicorn
 import yaml
 from starlette.applications import Starlette
 from starlette.requests import Request
-from starlette.responses import JSONResponse, HTMLResponse, Response, StreamingResponse
+from starlette.responses import JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse
 from starlette.routing import Route
 
 from config import ConfigManager, PROVIDER_PRESETS
@@ -120,6 +121,8 @@ async def api_config_post(req: Request) -> JSONResponse:
     try:
         payload = await req.json()
         content = payload.get("content", "")
+        if content is None:
+            content = ""
         if not content.strip():
             return JSONResponse({"ok": False, "error": "Content is empty"}, status_code=400)
         # Validate YAML syntax + schema
@@ -162,7 +165,28 @@ async def api_presets(req: Request) -> JSONResponse:
     return JSONResponse(PROVIDER_PRESETS)
 
 
-STATUS_PAGE_PATH = Path(__file__).with_name("status_page.html")
+# ── Frontend static files ────────────────────────────────────────────
+ALLOWED_EXTENSIONS = {".js", ".css", ".html"}
+MIME_MAP = {".js": "application/javascript", ".css": "text/css", ".html": "text/html"}
+
+
+async def serve_static(req: Request) -> Response:
+    """Serve frontend static assets (.js, .css only)."""
+    path = req.path_params.get("path", "")
+    full = Path(__file__).parent / path
+    if full.suffix.lower() not in ALLOWED_EXTENSIONS:
+        return Response("Not Found", status_code=404)
+    try:
+        resolved = full.resolve()
+        project_root = str(Path(__file__).parent.resolve())
+        if not (str(resolved) + os.sep).startswith(project_root + os.sep):
+            return Response("Forbidden", status_code=403)
+        return FileResponse(str(resolved), media_type=MIME_MAP.get(full.suffix.lower()))
+    except (OSError, ValueError):
+        return Response("Not Found", status_code=404)
+
+
+STATUS_PAGE_PATH = Path(__file__).with_name("index.html")
 
 
 def load_status_page() -> str:
@@ -188,6 +212,7 @@ def create_app() -> Starlette:
         Route("/api/config", api_config_post, methods=["POST"]),
         Route("/api/stats", api_stats, methods=["GET"]),
         Route("/api/presets", api_presets, methods=["GET"]),
+        Route("/{path:path}", serve_static, methods=["GET"]),
     ])
 
 
