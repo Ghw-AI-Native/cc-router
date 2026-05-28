@@ -36,3 +36,37 @@ curl http://127.0.0.1:8082/api/stats      # 路由统计
 curl http://127.0.0.1:8082/api/presets    # 供应商列表
 PYTHONPATH=. pytest tests/ -v             # 单元测试（23 个用例）
 ```
+
+## E2E 冒烟测试
+
+```bash
+# 1. 启动服务
+python router.py &
+
+# 2. 等待就绪
+until curl -s http://127.0.0.1:8082/health; do sleep 0.5; done
+
+# 3. Playwright 交互验证
+python -c "
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    page = p.chromium.launch(headless=True).new_page()
+    page.goto('http://127.0.0.1:8082/status', wait_until='networkidle')
+    page.wait_for_timeout(1500)
+    # 6 视图切换
+    for v in ['logs','providers','config','api','whitelist','overview']:
+        page.locator(f'button.nav[data-view=\"{v}\"]').click()
+        assert page.locator(f'#{v}').evaluate('el => el.classList.contains(\"active\")'), f'{v} not active'
+    # 刷新按钮
+    page.locator('#overview button:has-text(\"刷新\")').first.click()
+    page.wait_for_timeout(1000)
+    assert '路由' in page.locator('#hero-status').text_content()
+    print('E2E PASSED')
+"
+```
+
+```yaml /checkup
+test_command: "PYTHONPATH=. pytest tests/ -v"
+smoke_test_entry: "python router.py"
+e2e_command: "python -c \"<上面的 Playwright 脚本>\""
+```
