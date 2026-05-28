@@ -330,6 +330,13 @@ class ConfigManager:
             return self.load()
         return self._config
 
+    _VARIANT_MAP: dict[str, str] = {
+        "zhipu_en": "zhipu", "stepfun_en": "stepfun",
+        "minimax_en": "minimax", "siliconflow_en": "siliconflow",
+        "kimi_coding": "moonshot", "bailian_coding": "dashscope",
+    }
+
     @staticmethod
     def params_whitelist(provider: str) -> set[str]:
-        return PARAM_WHITELISTS.get(provider, PARAM_WHITELISTS["anthropic"])
+        base = ConfigManager._VARIANT_MAP.get(provider, provider)
+        return PARAM_WHITELISTS.get(base, PARAM_WHITELISTS["anthropic"])

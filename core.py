@@ -126,5 +126,8 @@ async def connect_stream(
 
 async def iter_stream_bytes(resp: httpx.Response):
     """Yield byte chunks from an open streaming *resp* (200 only)."""
-    async for chunk in resp.aiter_bytes():
-        yield chunk
+    try:
+        async for chunk in resp.aiter_bytes():
+            yield chunk
+    finally:
+        await resp.aclose()
