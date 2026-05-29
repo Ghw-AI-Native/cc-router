@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(PYTHONPATH=. pytest tests/ -v)",
+      "Bash(python router.py)",
+      "Bash(pip install*)"
+    ]
+  }
+}

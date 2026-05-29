@@ -31,7 +31,7 @@ class Overview extends Component {
                         <div class="route-arrow">→</div>
                         <div class="lane"><div class="lane-title"><strong>cc-router 判断</strong><span class="state ok">生效</span></div><div class="subtle-code">detect_images(body) → selected backend</div><div class="tags"><span class="tag amber">参数白名单</span><span class="tag green">SSE 透传</span></div></div>
                     </div>
-                    <div class="head" style="border-top:1px solid var(--line);border-bottom:0"><div class="quick-actions"><button class="btn" onclick="refresh()">刷新</button><button class="btn" onclick="showView('config')">打开 config.yaml</button><button class="btn primary" onclick="copyEnv()">复制 Claude Code 环境变量</button></div></div>
+                    <div class="head" style="border-top:1px solid var(--border);border-bottom:0"><div class="quick-actions"><button class="btn" onclick="refresh()">刷新</button><button class="btn" onclick="showView('config')">打开 config.yaml</button><button class="btn primary" onclick="copyEnv()">复制 Claude Code 环境变量</button></div></div>
                 </div>
             </div>
             <div class="strip">
