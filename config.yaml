@@ -3,18 +3,18 @@ server:
   port: 8082
 
 text:
-  name: "DeepSeek V4 Pro"
+  name: "DeepSeek"
   base_url: "https://api.deepseek.com/anthropic"
   api_key: "sk-YOUR-DEEPSEEK-KEY"
   model: "deepseek-v4-pro[1m]"
   provider: "deepseek"
 
 multimodal:
-  name: "Qwen-VL-Max via 百炼"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode"
-  api_key: "sk-YOUR-DASHSCOPE-KEY"
-  model: "qwen-vl-max"
-  provider: "dashscope"
+  name: "小米 MiMo"
+  base_url: "https://api.xiaomimimo.com/anthropic"
+  api_key: "sk-YOUR-MIMO-KEY"
+  model: "mimo-v2.5"
+  provider: "mimo"
 
 logging:
   level: "INFO"

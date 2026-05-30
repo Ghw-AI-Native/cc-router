@@ -15,7 +15,7 @@ class App extends Component {
             <div class="product">
                 <header class="topbar">
                     <div class="brand">
-                        <div class="mark"></div>
+                        <div class="mark">cc</div>
                         <div>
                             <strong>cc-router 控制台</strong>
                             <code>http://127.0.0.1:8082/status</code>
@@ -28,31 +28,34 @@ class App extends Component {
                         </span>
                         <span class="signal">Python 3.10+</span>
                         <span class="signal" id="reload-signal">config.yaml 等待加载</span>
+                        <button class="theme-toggle" onclick="cycleTheme()" title="切换主题">
+                            <span id="theme-icon">◐</span>
+                        </button>
                     </div>
                 </header>
                 <div class="app">
                     <aside class="rail">
-                        <div class="rail-label">ROUTER</div>
+                        <div class="rail-label">Router</div>
                         <button class="nav active" data-view="overview" onclick="showView('overview')">
-                            <span class="sq"></span>总览
+                            <span class="material-symbols-outlined">dashboard</span>总览
                         </button>
                         <button class="nav" data-view="logs" onclick="showView('logs')">
-                            <span class="sq"></span>路由日志
+                            <span class="material-symbols-outlined">receipt_long</span>路由日志
                         </button>
                         <button class="nav" data-view="providers" onclick="showView('providers')">
-                            <span class="sq"></span>供应商
+                            <span class="material-symbols-outlined">hub</span>供应商
                         </button>
                         <button class="nav" data-view="config" onclick="showView('config')">
-                            <span class="sq"></span>配置
+                            <span class="material-symbols-outlined">settings</span>配置
                         </button>
-                        <div class="rail-label" style="margin-top:22px">CHECKS</div>
+                        <div class="rail-label" style="margin-top:22px">Checks</div>
                         <button class="nav" data-view="api" onclick="showView('api')">
-                            <span class="sq"></span>API 检查
+                            <span class="material-symbols-outlined">check_circle</span>API 检查
                         </button>
                         <button class="nav" data-view="whitelist" onclick="showView('whitelist')">
-                            <span class="sq"></span>参数白名单
+                            <span class="material-symbols-outlined">filter_list</span>参数白名单
                         </button>
-                        <div class="local-card">
+                        <div class="local-card" style="margin-top:auto">
                             <b>本地连接</b>
                             <div><span>Host</span><code id="local-host">127.0.0.1</code></div>
                             <div><span>Port</span><code id="local-port">8082</code></div>
@@ -85,6 +88,7 @@ class App extends Component {
                 </div>
             </div>
             <div class="toast" id="toast"></div>
+            <div class="provider-modal" id="provider-modal"></div>
         `;
     }
 

@@ -72,7 +72,7 @@ async def messages(req: Request) -> StreamingResponse | JSONResponse:
     try:
         if is_stream:
             resp, _proxy_body = await connect_stream(client, backend, body, client_version)
-            proxy_headers = {"x-cc-router-backend": backend.name, "x-cc-router-route": route_label}
+            proxy_headers = {"x-cc-router-backend": backend.provider, "x-cc-router-route": route_label}
             if resp.status_code != 200:
                 error_body = await resp.aread()
                 _record(route_label, has_image, source_model, backend.model, backend.name, resp.status_code)
@@ -86,7 +86,7 @@ async def messages(req: Request) -> StreamingResponse | JSONResponse:
             k: v for k, v in resp_headers.items()
             if k.lower() not in {"transfer-encoding", "content-encoding", "content-length"}
         }
-        proxy_headers["x-cc-router-backend"] = backend.name
+        proxy_headers["x-cc-router-backend"] = backend.provider
         proxy_headers["x-cc-router-route"] = route_label
 
         _record(route_label, has_image, source_model, backend.model, backend.name, status_code)

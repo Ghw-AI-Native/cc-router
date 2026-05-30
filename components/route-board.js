@@ -41,7 +41,7 @@ class RouteBoard extends Component {
                         </div>
                     </div>
                 </div>
-                <div class="head" style="border-top:1px solid var(--border);border-bottom:0">
+                <div class="head" style="border-top:1px solid var(--border-light);border-bottom:0">
                     <div class="quick-actions">
                         <button class="btn" onclick="refresh()">刷新</button>
                         <button class="btn" onclick="showView('config')">打开 config.yaml</button>
