@@ -220,7 +220,7 @@ PARAM_WHITELISTS: dict[str, set[str]] = {
 # ── Provider presets ─────────────────────────────────────────────────
 # Used by the Web UI to offer one-click provider selection.
 
-PROVIDER_PRESETS: dict[str, dict] = {
+PROVIDER_PRESETS: dict[str, dict[str, str | list[str]]] = {
     "deepseek":    {"name": "DeepSeek",              "base_url": "https://api.deepseek.com/anthropic",                 "auth": "x-api-key",               "models": ["deepseek-v4-pro[1m]", "deepseek-v4-pro", "deepseek-chat", "deepseek-coder"]},
     "dashscope":   {"name": "阿里百炼 (DashScope)",    "base_url": "https://dashscope.aliyuncs.com/compatible-mode",    "auth": "Authorization: Bearer",   "models": ["qwen-max", "qwen-plus", "qwen-turbo", "qwen-vl-max", "qwen-vl-plus"]},
     "bailian_coding": {"name": "百炼 Coding 专线",     "base_url": "https://coding.dashscope.aliyuncs.com/apps/anthropic","auth": "Authorization: Bearer", "models": ["qwen-coder-plus", "qwen-coder-turbo"]},
@@ -236,7 +236,7 @@ PROVIDER_PRESETS: dict[str, dict] = {
     "volcengine":  {"name": "火山引擎 Agentplan",      "base_url": "https://ark.cn-beijing.volces.com/api/coding",      "auth": "x-api-key",               "models": ["doubao-pro-256k", "doubao-pro-128k"]},
     "doubao":      {"name": "豆包 Seed",               "base_url": "https://ark.cn-beijing.volces.com/api/compatible",   "auth": "x-api-key",               "models": ["doubao-pro-256k", "doubao-pro-128k", "doubao-lite-128k"]},
     "longcat":     {"name": "Longcat",                "base_url": "https://api.longcat.chat/anthropic",                "auth": "x-api-key",               "models": []},
-    "mimo":        {"name": "小米 MiMo",               "base_url": "https://api.xiaomimimo.com/anthropic",              "auth": "x-api-key",               "models": ["mimo-v2.5[1M]", "mimo-v2-flash"]},
+    "mimo":        {"name": "小米 MiMo",               "base_url": "https://api.xiaomimimo.com/anthropic",              "auth": "x-api-key",               "models": ["mimo-v2.5", "mimo-v2.5-pro", "mimo-v2-flash"]},
     "bailing":     {"name": "蚂蚁百灵 (BaiLing)",       "base_url": "https://api.tbox.cn/api/anthropic",                 "auth": "x-api-key",               "models": []},
     "siliconflow": {"name": "硅基流动 (SiliconFlow)",   "base_url": "https://api.siliconflow.cn",                       "auth": "Authorization: Bearer",   "models": ["Qwen/Qwen2.5-72B-Instruct", "deepseek-ai/DeepSeek-V3", "THUDM/glm-4-9b-chat"]},
     "siliconflow_en": {"name": "硅基流动 (国际)",       "base_url": "https://api.siliconflow.com",                       "auth": "Authorization: Bearer",   "models": ["Qwen/Qwen2.5-72B-Instruct", "deepseek-ai/DeepSeek-V3"]},
