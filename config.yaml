@@ -11,8 +11,8 @@ server:
   host: 127.0.0.1
   port: 8082
 text:
-  api_key: sk-YOUR-DEEPSEEK-KEY
-  base_url: https://api.deepseek.com/anthropic
-  model: deepseek-v4-pro[1m]
-  name: DeepSeek
-  provider: deepseek
+  name: "DeepSeek"
+  base_url: "https://api.deepseek.com/anthropic"
+  api_key: "sk-test"
+  model: "deepseek-v4-pro[1m]"
+  provider: "deepseek"

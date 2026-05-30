@@ -146,10 +146,21 @@ window.openProviderModal = function (providerKey) {
     const currentRole = providerKey === s.text_backend?.provider ? 'text'
         : providerKey === s.multimodal_backend?.provider ? 'multimodal' : '';
 
-    // Parse current config for existing key
+    // Parse current config for existing key (scoped to the matching section)
     const content = appState.config?.content || '';
-    const keyRegex = new RegExp(providerKey + `[\\s\\S]*?api_key:\\s*["']?([^"'\\n]+)`, 'i');
-    const existingKey = keyRegex.exec(content)?.[1]?.trim() || '';
+    const s = appState.stats || {};
+    const sectionRole = providerKey === s.text_backend?.provider ? 'text'
+        : providerKey === s.multimodal_backend?.provider ? 'multimodal' : '';
+    let existingKey = '';
+    if (sectionRole) {
+        // Match only within the specific YAML section (text: or multimodal:)
+        const sectionRegex = new RegExp(`^${sectionRole}:\\s*\\n((?:[ \\t]+.*\\n)*)`, 'm');
+        const sectionMatch = sectionRegex.exec(content);
+        if (sectionMatch) {
+            const keyMatch = /api_key:\s*["']?([^"'\n]+)/.exec(sectionMatch[1]);
+            if (keyMatch) existingKey = keyMatch[1].trim();
+        }
+    }
 
     // Find available models from presets
     const models = p.models || [];

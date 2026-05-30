@@ -57,6 +57,10 @@ async def messages(req: Request) -> StreamingResponse | JSONResponse:
         stats["errors"] += 1
         return JSONResponse({"error": "Invalid request body"}, status_code=400)
 
+    if not isinstance(body, dict):
+        stats["errors"] += 1
+        return JSONResponse({"error": "Request body must be a JSON object"}, status_code=400)
+
     has_image = detect_images(body)
     backend = cfg.multimodal if has_image else cfg.text
     route_label = "multimodal" if has_image else "text"
@@ -150,9 +154,9 @@ async def api_config_provider_post(req: Request) -> JSONResponse:
         payload = await req.json()
         role = payload.get("role")
         provider = payload.get("provider")
-        api_key = payload.get("api_key", "").strip()
-        model = payload.get("model", "").strip()
-        base_url = payload.get("base_url", "").strip()
+        api_key = (payload.get("api_key") or "").strip()
+        model = (payload.get("model") or "").strip()
+        base_url = (payload.get("base_url") or "").strip()
 
         if role not in ("text", "multimodal"):
             return JSONResponse({"ok": False, "error": "role must be 'text' or 'multimodal'"}, status_code=400)
@@ -169,17 +173,30 @@ async def api_config_provider_post(req: Request) -> JSONResponse:
         if not base_url:
             base_url = preset["base_url"]
 
-        # Read, update, and write config safely with yaml library
+        # Parse config for validation only
         raw = config_mgr._path.read_text(encoding="utf-8")
-        parsed = yaml.safe_load(raw) or {}
-        parsed[role] = {
-            "name": preset["name"],
-            "base_url": base_url,
-            "api_key": api_key,
-            "model": model,
-            "provider": provider,
-        }
-        config_mgr._path.write_text(yaml.dump(parsed, allow_unicode=True, default_flow_style=False), encoding="utf-8")
+        parsed = yaml.safe_load(raw)
+        if not isinstance(parsed, dict):
+            parsed = {}
+
+        # Build the new section as YAML text (preserves comments in other sections)
+        section_yaml = (
+            f"{role}:\n"
+            f"  name: \"{preset['name']}\"\n"
+            f"  base_url: \"{base_url}\"\n"
+            f"  api_key: \"{api_key}\"\n"
+            f"  model: \"{model}\"\n"
+            f"  provider: \"{provider}\"\n"
+        )
+        # Replace only the target section in the raw text
+        import re
+        section_pattern = re.compile(rf"^{role}:\s*\n(?:[ \t]+.*\n)*", re.MULTILINE)
+        if section_pattern.search(raw):
+            new_raw = section_pattern.sub(section_yaml, raw)
+        else:
+            new_raw = raw.rstrip() + "\n\n" + section_yaml + "\n"
+
+        config_mgr._path.write_text(new_raw, encoding="utf-8")
         config_mgr._mtime = 0.0
         logger.info("Config updated via provider modal: %s → %s", role, provider)
         return JSONResponse({"ok": True})
