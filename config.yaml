@@ -13,6 +13,6 @@ server:
 text:
   name: "DeepSeek"
   base_url: "https://api.deepseek.com/anthropic"
-  api_key: "sk-test"
+  api_key: "sk-YOUR-DEEPSEEK-KEY"
   model: "deepseek-v4-pro[1m]"
   provider: "deepseek"
