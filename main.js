@@ -236,34 +236,11 @@ window.saveProviderConfig = async function (providerKey) {
     if (!apiKey) { toast('请填写 API Key', true); return; }
     if (!model) { toast('请选择或输入模型', true); return; }
 
-    // Build new config content
-    let content = appState.config?.content || '';
-    const section = role === 'text' ? 'text' : 'multimodal';
-
-    // Remove existing section if present
-    const sectionRegex = new RegExp(`^${section}:\\s*\\n([ \\t]+.*\\n)*`, 'm');
-    content = content.replace(sectionRegex, '');
-
-    // Build new section
-    const newSection = `${section}:\n  name: "${esc(p.name)}"\n  base_url: "${esc(baseUrl)}"\n  api_key: "${esc(apiKey)}"\n  model: "${esc(model)}"\n  provider: "${esc(providerKey)}"\n`;
-
-    // Insert after "server:" block or at beginning
-    const serverEnd = content.indexOf('\n\n', content.indexOf('server:'));
-    if (serverEnd > -1) {
-        content = content.slice(0, serverEnd + 1) + '\n' + newSection + content.slice(serverEnd + 1);
-    } else {
-        content = newSection + '\n' + content;
-    }
-
-    // Clean up multiple blank lines
-    content = content.replace(/\n{3,}/g, '\n\n');
-
-    // Save
     try {
-        const r = await fetch('/api/config', {
+        const r = await fetch('/api/config/provider', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ content })
+            body: JSON.stringify({ role, provider: providerKey, api_key: apiKey, model, base_url: baseUrl })
         });
         const data = await r.json();
         if (data.ok) {

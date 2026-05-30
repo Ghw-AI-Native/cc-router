@@ -144,6 +144,51 @@ async def api_config_post(req: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
 
 
+async def api_config_provider_post(req: Request) -> JSONResponse:
+    """POST /api/config/provider — safely update a backend section via structured JSON."""
+    try:
+        payload = await req.json()
+        role = payload.get("role")
+        provider = payload.get("provider")
+        api_key = payload.get("api_key", "").strip()
+        model = payload.get("model", "").strip()
+        base_url = payload.get("base_url", "").strip()
+
+        if role not in ("text", "multimodal"):
+            return JSONResponse({"ok": False, "error": "role must be 'text' or 'multimodal'"}, status_code=400)
+        if not provider:
+            return JSONResponse({"ok": False, "error": "provider is required"}, status_code=400)
+        if not api_key:
+            return JSONResponse({"ok": False, "error": "api_key is required"}, status_code=400)
+        if not model:
+            return JSONResponse({"ok": False, "error": "model is required"}, status_code=400)
+
+        preset = PROVIDER_PRESETS.get(provider)
+        if not preset:
+            return JSONResponse({"ok": False, "error": f"Unknown provider: {provider}"}, status_code=400)
+        if not base_url:
+            base_url = preset["base_url"]
+
+        # Read, update, and write config safely with yaml library
+        raw = config_mgr._path.read_text(encoding="utf-8")
+        parsed = yaml.safe_load(raw) or {}
+        parsed[role] = {
+            "name": preset["name"],
+            "base_url": base_url,
+            "api_key": api_key,
+            "model": model,
+            "provider": provider,
+        }
+        config_mgr._path.write_text(yaml.dump(parsed, allow_unicode=True, default_flow_style=False), encoding="utf-8")
+        config_mgr._mtime = 0.0
+        logger.info("Config updated via provider modal: %s → %s", role, provider)
+        return JSONResponse({"ok": True})
+    except yaml.YAMLError as exc:
+        return JSONResponse({"ok": False, "error": f"YAML error: {exc}"}, status_code=400)
+    except Exception as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+
 async def api_stats(req: Request) -> JSONResponse:
     """GET /api/stats — routing statistics + recent activity."""
     cfg = config_mgr.config
@@ -210,6 +255,7 @@ def create_app() -> Starlette:
         Route("/health", health, methods=["GET"]),
         Route("/api/config", api_config_get, methods=["GET"]),
         Route("/api/config", api_config_post, methods=["POST"]),
+        Route("/api/config/provider", api_config_provider_post, methods=["POST"]),
         Route("/api/stats", api_stats, methods=["GET"]),
         Route("/api/presets", api_presets, methods=["GET"]),
         Route("/{path:path}", serve_static, methods=["GET"]),

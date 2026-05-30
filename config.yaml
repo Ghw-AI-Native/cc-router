@@ -1,21 +1,18 @@
-server:
-  host: "127.0.0.1"
-  port: 8082
-
-text:
-  name: "DeepSeek"
-  base_url: "https://api.deepseek.com/anthropic"
-  api_key: "sk-YOUR-DEEPSEEK-KEY"
-  model: "deepseek-v4-pro[1m]"
-  provider: "deepseek"
-
-multimodal:
-  name: "小米 MiMo"
-  base_url: "https://api.xiaomimimo.com/anthropic"
-  api_key: "sk-YOUR-MIMO-KEY"
-  model: "mimo-v2.5"
-  provider: "mimo"
-
 logging:
-  level: "INFO"
+  level: INFO
   log_file: null
+multimodal:
+  api_key: sk-YOUR-MIMO-KEY
+  base_url: https://api.xiaomimimo.com/anthropic
+  model: mimo-v2.5
+  name: 小米 MiMo
+  provider: mimo
+server:
+  host: 127.0.0.1
+  port: 8082
+text:
+  api_key: sk-YOUR-DEEPSEEK-KEY
+  base_url: https://api.deepseek.com/anthropic
+  model: deepseek-v4-pro[1m]
+  name: DeepSeek
+  provider: deepseek
