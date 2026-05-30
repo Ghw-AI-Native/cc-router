@@ -199,22 +199,23 @@ load_config()
 
 **输入：** Anthropic Messages API 请求体
 
-**逻辑：**
+**逻辑（递归全量扫描）：**
 
 ```python
-for msg in body["messages"]:
-    content = msg.get("content", "")
-    if isinstance(content, list):
-        for block in content:
-            if isinstance(block, dict) and block.get("type") == "image":
-                return True
-return False
+def detect_images(body: dict[str, Any]) -> bool:
+    if isinstance(body, dict):
+        if body.get("type") == "image":
+            return True
+        return any(detect_images(v) for v in body.values())
+    if isinstance(body, list):
+        return any(detect_images(item) for item in body)
+    return False
 ```
 
 **关键点：**
-- content 可能是字符串（纯文本快捷格式）或数组（多块格式），都要处理
-- 只检测 `type: "image"`，不处理 `type: "tool_use"` 等其他块类型
-- 遍历所有 messages（包括 system 之后的每一轮），因为图片可能出现在任意消息中
+- 递归遍历请求体所有嵌套位置，覆盖 `messages[*].content`、`system`（content 数组格式）、`tool_result` 内嵌 content 等
+- 匹配到任意深度任意位置的 `type: "image"` 即返回 True
+- 不处理 `type: "tool_use"` 等其他块类型
 
 ### 5.2 请求转发
 
