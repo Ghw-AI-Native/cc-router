@@ -240,14 +240,14 @@ X-Title: cc-router                         # OpenRouter 专用
 **实现：**
 
 ```python
-async with client.stream("POST", url, json=body, headers=headers) as resp:
-    if resp.status_code != 200:
-        # 读取错误信息并返回
-        error_body = await resp.aread()
-        yield error_body
-        return
-    async for chunk in resp.aiter_bytes():
-        yield chunk
+request = client.build_request("POST", url, json=body, headers=headers)
+resp = await client.send(request, stream=True)
+if resp.status_code != 200:
+    error_body = await resp.aread()
+    yield error_body
+    return
+async for chunk in resp.aiter_bytes():
+    yield chunk
 ```
 
 **关键点：**

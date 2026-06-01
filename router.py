@@ -176,7 +176,7 @@ async def messages(req: Request) -> StreamingResponse | JSONResponse:
         stats["errors"] += 1
         _record(route_label, has_image, source_model, backend.model, backend.name, 502)
         logger.error("Proxy error: %s", exc)
-        return JSONResponse({"error": str(exc)}, status_code=502)
+        return JSONResponse({"error": "Backend request failed"}, status_code=502)
 
 
 async def health(req: Request) -> JSONResponse:
@@ -270,7 +270,6 @@ async def api_config_provider_post(req: Request) -> JSONResponse:
             f"  provider: {_quote_yaml_string(provider)}\n"
         )
         # Replace only the target section in the raw text
-        import re
         section_pattern = re.compile(rf"^{role}:\s*\n(?:[ \t]+.*\n)*", re.MULTILINE)
         if section_pattern.search(raw):
             new_raw = section_pattern.sub(section_yaml, raw)

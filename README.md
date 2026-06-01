@@ -1,10 +1,8 @@
 # cc-router
 
-本地代理，自动检测 Claude Code 请求中的图片内容，路由到不同后端：
-- **纯文本** → 高性价比模型（DeepSeek V4 Pro 等）
-- **含图片** → 多模态模型（Qwen-VL、Claude 等）
+本地代理，放在 Claude Code 和 LLM 后端之间。自动检测请求里有没有图片，有图走多模态模型，没图走便宜的文本模型。
 
-内置 23 个供应商预设，对标 cc-switch。浏览器打开 `http://127.0.0.1:8082/status` 即可管理。
+内置 23 个供应商预设。浏览器打开 `http://127.0.0.1:8082/status` 就能管理。
 
 ## 快速开始
 
@@ -18,7 +16,7 @@ python router.py
 
 ## Claude Code 配置
 
-默认推荐让 Claude Code 走本地代理，而不是直连 DeepSeek：
+让 Claude Code 走本地代理，别直连 DeepSeek：
 
 ```bash
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
@@ -36,7 +34,7 @@ export ANTHROPIC_API_KEY=""
 
 模板里的 `ANTHROPIC_BASE_URL` 固定为 `http://127.0.0.1:8082`，请求会先进入 cc-router，再由 cc-router 按文本/图片自动路由到后端模型。`ANTHROPIC_AUTH_TOKEN` 使用项目约定的 `cc-router`，`ANTHROPIC_API_KEY` 保持空字符串，避免把真实 Key 写进仓库。
 
-`mcpServers` 的命令和 `statusLine.command` 是本机示例。复制前请确认你的机器已经安装 `chrome-devtools-mcp`、`context7-mcp`、`playwright-mcp`，并按实际路径调整 `node C:/Users/Administrator/.claude/statusline-wrapper.mjs`。
+模板里的 `mcpServers` 命令和 `statusLine.command` 是本机示例，复制前确认你的机器上装了 `chrome-devtools-mcp`、`context7-mcp`、`playwright-mcp`，并按实际路径调整 `node C:/Users/Administrator/.claude/statusline-wrapper.mjs`。
 
 核心字段如下：
 

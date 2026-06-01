@@ -242,12 +242,10 @@ function parseConfigSection(content, role) {
 }
 
 function uniqueModels(models, selectedModel) {
-    const values = [];
-    if (selectedModel) values.push(selectedModel);
-    (models || []).forEach(model => {
-        if (model && !values.includes(model)) values.push(model);
-    });
-    return values;
+    const set = new Set();
+    if (selectedModel) set.add(selectedModel);
+    (models || []).forEach(m => { if (m) set.add(m); });
+    return [...set];
 }
 
 window.openProviderModal = function (providerKey) {
@@ -539,8 +537,10 @@ function renderConfigSummary() {
     const reloadCopy = document.getElementById('reload-copy');
     if (reloadCopy) reloadCopy.textContent = mtime ? '上次加载成功，当前配置已生效' : '等待读取配置';
 
-    const textKey = /text:[\s\S]*?api_key:\s*["']?([^"'\n]+)/.exec(content)?.[1]?.trim();
-    const imageKey = /multimodal:[\s\S]*?api_key:\s*["']?([^"'\n]+)/.exec(content)?.[1]?.trim();
+    const textSec = parseConfigSection(content, 'text');
+    const imageSec = parseConfigSection(content, 'multimodal');
+    const textKey = textSec.api_key || '';
+    const imageKey = imageSec.api_key || '';
 
     const keyList = document.getElementById('key-list');
     if (keyList) keyList.innerHTML = [
