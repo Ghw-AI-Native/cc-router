@@ -1,0 +1,20 @@
+# Copy this file to config.yaml and fill in your real API keys.
+# Do not commit config.yaml.
+logging:
+  level: INFO
+  log_file: null
+multimodal:
+  api_key: sk-YOUR_MULTIMODAL_API_KEY
+  base_url: https://api.xiaomimimo.com/anthropic
+  model: mimo-v2.5
+  name: 小米 MiMo
+  provider: mimo
+server:
+  host: 127.0.0.1
+  port: 8082
+text:
+  name: DeepSeek
+  base_url: https://api.deepseek.com/anthropic
+  api_key: sk-YOUR_TEXT_API_KEY
+  model: deepseek-v4-pro[1m]
+  provider: deepseek

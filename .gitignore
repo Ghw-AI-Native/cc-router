@@ -2,6 +2,7 @@ __pycache__/
 .pytest_cache/
 .superpowers/
 .server-status-ui.*
+config.yaml
 status-page-live.png
 screenshot-*.png
 .claude/checkup-state.json

@@ -18,13 +18,63 @@ python router.py
 
 ## Claude Code 配置
 
+默认推荐让 Claude Code 走本地代理，而不是直连 DeepSeek：
+
 ```bash
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"
 export ANTHROPIC_AUTH_TOKEN="cc-router"
 export ANTHROPIC_API_KEY=""
 ```
 
-或在 `~/.claude/settings.json` 中设置 `env` 字段。
+项目里提供了一个可复制的完整模板：[.claude/settings.cc-router.example.json](.claude/settings.cc-router.example.json)。
+
+使用方式：
+
+1. 打开状态页 `http://127.0.0.1:8082/status`，点击「复制 settings.json」。
+2. 手动把 JSON 里的字段合并到 `~/.claude/settings.json`。
+3. 不要整文件覆盖你的现有配置，尤其是你已有的 `mcpServers`、`permissions`、`statusLine`、`theme`。
+
+模板里的 `ANTHROPIC_BASE_URL` 固定为 `http://127.0.0.1:8082`，请求会先进入 cc-router，再由 cc-router 按文本/图片自动路由到后端模型。`ANTHROPIC_AUTH_TOKEN` 使用项目约定的 `cc-router`，`ANTHROPIC_API_KEY` 保持空字符串，避免把真实 Key 写进仓库。
+
+`mcpServers` 的命令和 `statusLine.command` 是本机示例。复制前请确认你的机器已经安装 `chrome-devtools-mcp`、`context7-mcp`、`playwright-mcp`，并按实际路径调整 `node C:/Users/Administrator/.claude/statusline-wrapper.mjs`。
+
+核心字段如下：
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "http://127.0.0.1:8082",
+    "ANTHROPIC_AUTH_TOKEN": "cc-router",
+    "ANTHROPIC_API_KEY": "",
+    "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-v4-flash"
+  },
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "chrome-devtools-mcp",
+      "args": ["--isolated"]
+    },
+    "context7": {
+      "command": "context7-mcp"
+    },
+    "playwright": {
+      "command": "playwright-mcp"
+    }
+  },
+  "permissions": {
+    "defaultMode": "bypassPermissions"
+  },
+  "skipDangerousModePermissionPrompt": true,
+  "statusLine": {
+    "command": "node C:/Users/Administrator/.claude/statusline-wrapper.mjs",
+    "type": "command"
+  },
+  "theme": "dark"
+}
+```
 
 ## 内置供应商（23 个）
 

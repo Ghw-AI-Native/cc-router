@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import sys
 import time
 from datetime import datetime, timezone, timedelta
@@ -19,7 +20,7 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse, HTMLResponse, Response, StreamingResponse, FileResponse
 from starlette.routing import Route
 
-from config import ConfigManager, PROVIDER_PRESETS
+from config import BackendConfig, ConfigManager, LoggingConfig, PROVIDER_PRESETS, ServerConfig
 from core import detect_images, forward, connect_stream, iter_stream_bytes, TIMEOUT
 
 # ── Globals ─────────────────────────────────────────────────────────
@@ -30,6 +31,82 @@ activity_log: list[dict[str, Any]] = []  # Last 50 routing decisions
 MAX_LOG = 50
 
 logger = logging.getLogger("cc-router")
+
+CONFIG_STRING_KEYS = {"api_key", "base_url", "host", "level", "model", "name", "provider"}
+CONFIG_SCALAR_RE = re.compile(r"^(\s*)([A-Za-z_][A-Za-z0-9_]*):\s*(.*?)\s*$")
+REQUIRED_BACKEND_FIELDS = ("name", "base_url", "api_key", "model", "provider")
+
+
+def _split_inline_comment(value: str) -> tuple[str, str]:
+    for index, char in enumerate(value):
+        if char == "#" and (index == 0 or value[index - 1].isspace()):
+            return value[:index].rstrip(), value[index:]
+    return value.rstrip(), ""
+
+
+def _quote_yaml_string(value: str) -> str:
+    return json.dumps(value, ensure_ascii=False)
+
+
+def normalize_config_quotes(content: str) -> str:
+    """Normalize known string fields to double-quoted YAML scalars."""
+    lines = content.splitlines()
+    normalized: list[str] = []
+
+    for line in lines:
+        match = CONFIG_SCALAR_RE.match(line)
+        if not match:
+            normalized.append(line)
+            continue
+
+        indent, key, raw_value = match.groups()
+        if key not in CONFIG_STRING_KEYS:
+            normalized.append(line)
+            continue
+
+        value, comment = _split_inline_comment(raw_value)
+        stripped = value.strip()
+        if not stripped or stripped[0] in {"'", '"', "[", "{", "|", ">"}:
+            normalized.append(line)
+            continue
+
+        suffix = f" {comment}" if comment else ""
+        normalized.append(f"{indent}{key}: {_quote_yaml_string(stripped)}{suffix}")
+
+    trailing_newline = "\n" if content.endswith(("\n", "\r")) else ""
+    return "\n".join(normalized) + trailing_newline
+
+
+def validate_config_mapping(parsed: dict[str, Any]) -> str | None:
+    try:
+        server = parsed.get("server", {})
+        if not isinstance(server, dict):
+            return "Section must be a mapping: server"
+        ServerConfig(**server)
+
+        logging_config = parsed.get("logging", {})
+        if not isinstance(logging_config, dict):
+            return "Section must be a mapping: logging"
+        LoggingConfig(**logging_config)
+
+        for role in ("text", "multimodal"):
+            section = parsed.get(role)
+            if not isinstance(section, dict):
+                return f"Section must be a mapping: {role}"
+
+            missing = [field for field in REQUIRED_BACKEND_FIELDS if field not in section]
+            if missing:
+                return f"Missing required field: {role}.{missing[0]}"
+
+            provider = section.get("provider")
+            if provider not in PROVIDER_PRESETS:
+                return f"Unknown provider in {role}.provider: {provider}"
+
+            BackendConfig(**section)
+    except TypeError as exc:
+        return f"Invalid config schema: {exc}"
+
+    return None
 
 
 def _record(route: str, has_image: bool, source_model: str, target_model: str, backend_name: str, status: int) -> None:
@@ -137,6 +214,10 @@ async def api_config_post(req: Request) -> JSONResponse:
             return JSONResponse({"ok": False, "error": "Missing required section: text"}, status_code=400)
         if "multimodal" not in parsed:
             return JSONResponse({"ok": False, "error": "Missing required section: multimodal"}, status_code=400)
+        validation_error = validate_config_mapping(parsed)
+        if validation_error:
+            return JSONResponse({"ok": False, "error": validation_error}, status_code=400)
+        content = normalize_config_quotes(content)
         config_mgr._path.write_text(content, encoding="utf-8")
         # Force reload on next request
         config_mgr._mtime = 0.0
@@ -182,11 +263,11 @@ async def api_config_provider_post(req: Request) -> JSONResponse:
         # Build the new section as YAML text (preserves comments in other sections)
         section_yaml = (
             f"{role}:\n"
-            f"  name: \"{preset['name']}\"\n"
-            f"  base_url: \"{base_url}\"\n"
-            f"  api_key: \"{api_key}\"\n"
-            f"  model: \"{model}\"\n"
-            f"  provider: \"{provider}\"\n"
+            f"  name: {_quote_yaml_string(str(preset['name']))}\n"
+            f"  base_url: {_quote_yaml_string(base_url)}\n"
+            f"  api_key: {_quote_yaml_string(api_key)}\n"
+            f"  model: {_quote_yaml_string(model)}\n"
+            f"  provider: {_quote_yaml_string(provider)}\n"
         )
         # Replace only the target section in the raw text
         import re
@@ -196,6 +277,7 @@ async def api_config_provider_post(req: Request) -> JSONResponse:
         else:
             new_raw = raw.rstrip() + "\n\n" + section_yaml + "\n"
 
+        new_raw = normalize_config_quotes(new_raw)
         config_mgr._path.write_text(new_raw, encoding="utf-8")
         config_mgr._mtime = 0.0
         logger.info("Config updated via provider modal: %s → %s", role, provider)
@@ -230,6 +312,7 @@ async def api_presets(req: Request) -> JSONResponse:
 # ── Frontend static files ────────────────────────────────────────────
 ALLOWED_EXTENSIONS = {".js", ".css", ".html"}
 MIME_MAP = {".js": "application/javascript", ".css": "text/css", ".html": "text/html"}
+FRONTEND_NO_CACHE_HEADERS = {"Cache-Control": "no-store"}
 
 
 async def serve_static(req: Request) -> Response:
@@ -243,7 +326,11 @@ async def serve_static(req: Request) -> Response:
         project_root = str(Path(__file__).parent.resolve())
         if not (str(resolved) + os.sep).startswith(project_root + os.sep):
             return Response("Forbidden", status_code=403)
-        return FileResponse(str(resolved), media_type=MIME_MAP.get(full.suffix.lower()))
+        return FileResponse(
+            str(resolved),
+            media_type=MIME_MAP.get(full.suffix.lower()),
+            headers=FRONTEND_NO_CACHE_HEADERS,
+        )
     except (OSError, ValueError):
         return Response("Not Found", status_code=404)
 
@@ -259,7 +346,7 @@ def load_status_page() -> str:
 # ── Management panel ──────────────────────────────────────────────
 
 async def status_page(req: Request) -> HTMLResponse:
-    return HTMLResponse(load_status_page())
+    return HTMLResponse(load_status_page(), headers=FRONTEND_NO_CACHE_HEADERS)
 
 
 # ── App factory ─────────────────────────────────────────────────────

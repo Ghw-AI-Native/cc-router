@@ -72,6 +72,76 @@ function toast(msg, bad = false) {
     setTimeout(() => el.classList.remove('show'), 2400);
 }
 
+function copyText(text, successMessage) {
+    const fallbackCopy = () => new Promise((resolve, reject) => {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-1000px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        try {
+            if (!document.execCommand('copy')) throw new Error('copy command failed');
+            resolve();
+        } catch (err) {
+            reject(err);
+        } finally {
+            textarea.remove();
+        }
+    });
+
+    const modernCopy = navigator.clipboard?.writeText
+        ? navigator.clipboard.writeText(text)
+        : Promise.reject(new Error('clipboard unavailable'));
+
+    modernCopy
+        .catch(() => fallbackCopy())
+        .then(() => toast(successMessage))
+        .catch(() => toast('浏览器未允许复制', true));
+}
+
+const CLAUDE_SETTINGS_TEMPLATE = {
+    env: {
+        ANTHROPIC_BASE_URL: 'http://127.0.0.1:8082',
+        ANTHROPIC_AUTH_TOKEN: 'cc-router',
+        ANTHROPIC_API_KEY: '',
+        ANTHROPIC_MODEL: 'deepseek-v4-pro[1m]',
+        ANTHROPIC_DEFAULT_SONNET_MODEL: 'deepseek-v4-pro[1m]',
+        ANTHROPIC_DEFAULT_SONNET_MODEL_NAME: 'deepseek-v4-pro[1m]',
+        ANTHROPIC_DEFAULT_OPUS_MODEL: 'deepseek-v4-pro[1m]',
+        ANTHROPIC_DEFAULT_OPUS_MODEL_NAME: 'deepseek-v4-pro[1m]',
+        ANTHROPIC_DEFAULT_HAIKU_MODEL: 'deepseek-v4-flash',
+        CLAUDE_CODE_SUBAGENT_MODEL: 'deepseek-v4-flash',
+        CLAUDE_CODE_EFFORT_LEVEL: 'max',
+        ANTHROPIC_DISABLE_TELEMETRY: '1',
+        CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+    },
+    mcpServers: {
+        'chrome-devtools': {
+            command: 'chrome-devtools-mcp',
+            args: ['--isolated']
+        },
+        context7: {
+            command: 'context7-mcp'
+        },
+        playwright: {
+            command: 'playwright-mcp'
+        }
+    },
+    permissions: {
+        defaultMode: 'bypassPermissions'
+    },
+    skipDangerousModePermissionPrompt: true,
+    statusLine: {
+        command: 'node C:/Users/Administrator/.claude/statusline-wrapper.mjs',
+        type: 'command'
+    },
+    theme: 'dark'
+};
+
 // ── Global functions exposed for inline onclick ────────────────
 window.showView = function (viewId) {
     currentView = viewId;
@@ -120,24 +190,66 @@ window.filterLogs = function (type, btn, scope) {
 };
 
 window.copyEnv = function () {
-    navigator.clipboard?.writeText(
-        'export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"\nexport ANTHROPIC_AUTH_TOKEN="cc-router"\nexport ANTHROPIC_API_KEY=""'
-    ).then(() => toast('已复制环境变量')).catch(() => toast('浏览器未允许复制', true));
+    copyText(
+        'export ANTHROPIC_BASE_URL="http://127.0.0.1:8082"\nexport ANTHROPIC_AUTH_TOKEN="cc-router"\nexport ANTHROPIC_API_KEY=""',
+        '已复制环境变量'
+    );
+};
+
+window.copyClaudeSettings = function () {
+    copyText(
+        JSON.stringify(CLAUDE_SETTINGS_TEMPLATE, null, 2),
+        '已复制 settings.json 模板'
+    );
 };
 
 window.copyCurl = function () {
-    navigator.clipboard?.writeText(
-        'curl http://127.0.0.1:8082/health\ncurl http://127.0.0.1:8082/api/stats\ncurl http://127.0.0.1:8082/api/presets'
-    ).then(() => toast('已复制 curl 命令')).catch(() => toast('浏览器未允许复制', true));
+    copyText(
+        'curl http://127.0.0.1:8082/health\ncurl http://127.0.0.1:8082/api/stats\ncurl http://127.0.0.1:8082/api/presets',
+        '已复制 curl 命令'
+    );
 };
 
 window.copyRecent = function () {
-    navigator.clipboard?.writeText(
-        JSON.stringify(appState.stats?.recent || [], null, 2)
-    ).then(() => toast('已复制最近日志')).catch(() => toast('浏览器未允许复制', true));
+    copyText(
+        JSON.stringify(appState.stats?.recent || [], null, 2),
+        '已复制最近日志'
+    );
 };
 
 // ── Provider modal ────────────────────────────────────────────────
+function cleanYamlScalar(value) {
+    let scalar = String(value || '').trim();
+    const commentIndex = scalar.search(/\s#/);
+    if (commentIndex >= 0) scalar = scalar.slice(0, commentIndex).trim();
+    if ((scalar.startsWith('"') && scalar.endsWith('"')) || (scalar.startsWith("'") && scalar.endsWith("'"))) {
+        scalar = scalar.slice(1, -1);
+    }
+    return scalar.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+}
+
+function parseConfigSection(content, role) {
+    const sectionRegex = new RegExp(`^${role}:\\s*\\n((?:[ \\t]+.*(?:\\n|$))*)`, 'm');
+    const sectionMatch = sectionRegex.exec(content || '');
+    const values = {};
+    if (!sectionMatch) return values;
+
+    sectionMatch[1].split(/\r?\n/).forEach(line => {
+        const pair = /^\s+([A-Za-z_][A-Za-z0-9_]*):\s*(.*?)\s*$/.exec(line);
+        if (pair) values[pair[1]] = cleanYamlScalar(pair[2]);
+    });
+    return values;
+}
+
+function uniqueModels(models, selectedModel) {
+    const values = [];
+    if (selectedModel) values.push(selectedModel);
+    (models || []).forEach(model => {
+        if (model && !values.includes(model)) values.push(model);
+    });
+    return values;
+}
+
 window.openProviderModal = function (providerKey) {
     const presets = appState.presets || {};
     const p = presets[providerKey];
@@ -146,24 +258,28 @@ window.openProviderModal = function (providerKey) {
     const currentRole = providerKey === s.text_backend?.provider ? 'text'
         : providerKey === s.multimodal_backend?.provider ? 'multimodal' : '';
 
-    // Parse current config for existing key (scoped to the matching section)
     const content = appState.config?.content || '';
-    const s = appState.stats || {};
-    const sectionRole = providerKey === s.text_backend?.provider ? 'text'
-        : providerKey === s.multimodal_backend?.provider ? 'multimodal' : '';
-    let existingKey = '';
-    if (sectionRole) {
-        // Match only within the specific YAML section (text: or multimodal:)
-        const sectionRegex = new RegExp(`^${sectionRole}:\\s*\\n((?:[ \\t]+.*\\n)*)`, 'm');
-        const sectionMatch = sectionRegex.exec(content);
-        if (sectionMatch) {
-            const keyMatch = /api_key:\s*["']?([^"'\n]+)/.exec(sectionMatch[1]);
-            if (keyMatch) existingKey = keyMatch[1].trim();
-        }
-    }
-
-    // Find available models from presets
+    const sections = {
+        text: parseConfigSection(content, 'text'),
+        multimodal: parseConfigSection(content, 'multimodal')
+    };
     const models = p.models || [];
+    const defaultValues = {
+        apiKey: '',
+        model: models[0] || '',
+        baseUrl: p.base_url
+    };
+    const valuesForRole = (role) => {
+        const section = sections[role] || {};
+        if (section.provider !== providerKey) return defaultValues;
+        return {
+            apiKey: section.api_key || '',
+            model: section.model || defaultValues.model,
+            baseUrl: section.base_url || p.base_url
+        };
+    };
+    const initialValues = currentRole ? valuesForRole(currentRole) : defaultValues;
+    const initialModels = uniqueModels(models, initialValues.model);
 
     const modal = document.getElementById('provider-modal');
     if (!modal) return;
@@ -190,19 +306,18 @@ window.openProviderModal = function (providerKey) {
                 </div>
                 <div class="modal-field">
                     <label>API Key</label>
-                    <input type="password" class="modal-input" id="modal-api-key" placeholder="sk-..." value="${esc(existingKey)}">
+                    <input type="password" class="modal-input" id="modal-api-key" placeholder="sk-..." value="${esc(initialValues.apiKey)}">
                 </div>
                 <div class="modal-field">
                     <label>模型</label>
-                    <select class="modal-input" id="modal-model">
-                        ${models.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('')}
-                        ${models.length === 0 ? `<option value="">手动输入</option>` : ''}
-                    </select>
-                    ${models.length === 0 ? `<input type="text" class="modal-input" id="modal-model-custom" placeholder="模型名称" style="margin-top:8px">` : ''}
+                    <input type="text" class="modal-input" id="modal-model" list="modal-model-options" placeholder="模型名称" value="${esc(initialValues.model)}">
+                    <datalist id="modal-model-options">
+                        ${initialModels.map(m => `<option value="${esc(m)}"></option>`).join('')}
+                    </datalist>
                 </div>
                 <div class="modal-field">
                     <label>端点</label>
-                    <input type="text" class="modal-input" id="modal-base-url" value="${esc(p.base_url)}" readonly style="opacity:.6">
+                    <input type="text" class="modal-input" id="modal-base-url" value="${esc(initialValues.baseUrl)}">
                 </div>
             </div>
             <div class="modal-footer">
@@ -218,6 +333,19 @@ window.openProviderModal = function (providerKey) {
         r.addEventListener('change', () => {
             modal.querySelectorAll('.modal-radio').forEach(l => l.classList.remove('selected'));
             r.closest('.modal-radio').classList.add('selected');
+            const roleValues = valuesForRole(r.value);
+            const apiKeyInput = document.getElementById('modal-api-key');
+            const modelInput = document.getElementById('modal-model');
+            const baseUrlInput = document.getElementById('modal-base-url');
+            const modelOptions = document.getElementById('modal-model-options');
+            if (apiKeyInput) apiKeyInput.value = roleValues.apiKey;
+            if (modelInput) modelInput.value = roleValues.model;
+            if (baseUrlInput) baseUrlInput.value = roleValues.baseUrl;
+            if (modelOptions) {
+                modelOptions.innerHTML = uniqueModels(models, roleValues.model)
+                    .map(m => `<option value="${esc(m)}"></option>`)
+                    .join('');
+            }
         });
     });
 
@@ -238,10 +366,8 @@ window.saveProviderConfig = async function (providerKey) {
 
     const role = document.querySelector('input[name="provider-role"]:checked')?.value;
     const apiKey = document.getElementById('modal-api-key')?.value?.trim();
-    const modelSelect = document.getElementById('modal-model');
-    const modelCustom = document.getElementById('modal-model-custom');
-    const model = modelCustom?.value?.trim() || modelSelect?.value || '';
-    const baseUrl = document.getElementById('modal-base-url')?.value || p.base_url;
+    const model = document.getElementById('modal-model')?.value?.trim() || '';
+    const baseUrl = document.getElementById('modal-base-url')?.value?.trim() || p.base_url;
 
     if (!role) { toast('请选择分配给文本还是多模态', true); return; }
     if (!apiKey) { toast('请填写 API Key', true); return; }
@@ -358,7 +484,7 @@ function updateOverview() {
     // Recent logs table
     const rows = s.recent || [];
     const recentBody = document.getElementById('recent-body');
-    if (recentBody) recentBody.innerHTML = rows.slice(0, 8).map(logRowShort).join('') || '<tr><td colspan="5">暂无记录</td></tr>';
+    if (recentBody) recentBody.innerHTML = rows.slice(0, 8).map(logRowShort).join('') || emptyRecentState(5);
 
     // Config reload card
     renderConfigSummary();
@@ -370,7 +496,8 @@ function updateOverview() {
 function renderBackendCard(id, title, backend) {
     const el = document.getElementById(id);
     if (!el) return;
-    el.innerHTML = `<h3>${title}</h3>
+    const configured = backend?.provider && backend?.model;
+    el.innerHTML = `<div class="backend-title"><h3>${title}</h3><span class="status-chip ${configured ? 'ok' : 'warn'}">${configured ? 'READY' : 'CHECK'}</span></div>
         <div class="kv"><span>供应商</span><span>${esc(backend?.provider)}</span></div>
         <div class="kv"><span>模型</span><span>${esc(backend?.model)}</span></div>
         <div class="kv"><span>名称</span><span>${esc(backend?.name)}</span></div>
@@ -389,6 +516,16 @@ function logRowShort(e) {
     const tag = e.route === 'multimodal' ? '<span class="tag violet">image</span>' : `<span class="tag blue">${esc(e.route || 'text')}</span>`;
     const ok = Number(e.status) < 300;
     return `<tr data-type="${esc(type)}"><td class="mono">${esc(e.time)}</td><td>${tag}</td><td class="mono">${esc(e.source_model)}</td><td>${esc(e.backend)}</td><td><span class="status ${ok ? 'good' : 'fail'}">${ok ? 'OK' : 'ERR'} ${esc(e.status)}</span></td></tr>`;
+}
+
+function emptyRecentState(colspan) {
+    return `<tr><td colspan="${colspan}">
+        <div class="empty-state">
+            <span class="material-symbols-outlined">route</span>
+            <strong>等待第一条请求</strong>
+            <small>启动 Claude Code 后，这里会显示每次请求的来源模型、路由后端和状态码。</small>
+        </div>
+    </td></tr>`;
 }
 
 function renderConfigSummary() {

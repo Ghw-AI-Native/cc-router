@@ -14,11 +14,36 @@ class Overview extends Component {
         return `
             <!-- Header -->
             <div class="overview-header">
-                <h1 id="hero-status">路由正常</h1>
-                <div class="overview-subtitle">
-                    <span class="pulse-dot"></span>
-                    <span id="hero-health-text">代理运行中</span>
+                <div class="overview-title">
+                    <div class="hero-kicker">Local LLM Router</div>
+                    <h1 id="hero-status">路由正常</h1>
+                    <div class="overview-subtitle">
+                        <span class="pulse-dot"></span>
+                        <span id="hero-health-text">代理运行中</span>
+                    </div>
                 </div>
+                <div class="overview-actions">
+                    <button class="btn" onclick="refresh()">刷新</button>
+                </div>
+            </div>
+
+            <!-- Operator shortcuts -->
+            <div class="quick-action-list">
+                <button class="action-row" onclick="copyClaudeSettings()">
+                    <span class="material-symbols-outlined">content_copy</span>
+                    <strong>复制 settings.json</strong>
+                    <small>完整 Claude Code 配置模板</small>
+                </button>
+                <button class="action-row" onclick="showView('api')">
+                    <span class="material-symbols-outlined">fact_check</span>
+                    <strong>测试 API</strong>
+                    <small>检查 health、stats、presets、config</small>
+                </button>
+                <button class="action-row" onclick="showView('config')">
+                    <span class="material-symbols-outlined">tune</span>
+                    <strong>打开配置</strong>
+                    <small>修改后端、模型和 API Key</small>
+                </button>
             </div>
 
             <!-- Stats Grid — 4 cards -->
@@ -69,7 +94,13 @@ class Overview extends Component {
                             </tr>
                         </thead>
                         <tbody id="recent-body">
-                            <tr><td colspan="5">暂无记录</td></tr>
+                            <tr><td colspan="5">
+                                <div class="empty-state">
+                                    <span class="material-symbols-outlined">route</span>
+                                    <strong>等待第一条请求</strong>
+                                    <small>启动 Claude Code 后，这里会显示每次请求的来源模型、路由后端和状态码。</small>
+                                </div>
+                            </td></tr>
                         </tbody>
                     </table>
                 </div>
