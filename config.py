@@ -293,7 +293,13 @@ class ConfigManager:
 
     def load(self) -> Config:
         if not self._path.exists():
-            raise FileNotFoundError(f"Config file not found: {self._path}")
+            example = self._path.with_name("config.example.yaml")
+            if example.exists():
+                import shutil
+                shutil.copy2(example, self._path)
+                logger.info("Created config.yaml from config.example.yaml")
+            else:
+                raise FileNotFoundError(f"Config file not found: {self._path}")
 
         with open(self._path, encoding="utf-8") as fh:
             raw = yaml.safe_load(fh)

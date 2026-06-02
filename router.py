@@ -125,8 +125,14 @@ def _record(route: str, has_image: bool, source_model: str, target_model: str, b
 
 async def messages(req: Request) -> StreamingResponse | JSONResponse:
     """POST /v1/messages — main proxy endpoint."""
+    try:
+        cfg = config_mgr.config
+    except Exception as exc:
+        stats["errors"] += 1
+        logger.error("Config load failed: %s", exc)
+        return JSONResponse({"error": "Service unavailable: config invalid"}, status_code=503)
+
     client: httpx.AsyncClient = req.app.state.client
-    cfg = config_mgr.config
 
     try:
         body: dict[str, Any] = await req.json()

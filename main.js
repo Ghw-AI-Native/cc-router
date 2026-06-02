@@ -197,8 +197,13 @@ window.copyEnv = function () {
 };
 
 window.copyClaudeSettings = function () {
+    const s = appState.stats || {};
+    const host = s.server?.host || '127.0.0.1';
+    const port = s.server?.port || 8082;
+    const baseUrl = `http://${host}:${port}`;
+    const settings = { ...CLAUDE_SETTINGS_TEMPLATE, env: { ...CLAUDE_SETTINGS_TEMPLATE.env, ANTHROPIC_BASE_URL: baseUrl } };
     copyText(
-        JSON.stringify(CLAUDE_SETTINGS_TEMPLATE, null, 2),
+        JSON.stringify(settings, null, 2),
         '已复制 settings.json 模板'
     );
 };

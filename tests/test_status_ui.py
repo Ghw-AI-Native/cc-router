@@ -97,6 +97,20 @@ multimodal:
     assert config_path.read_text(encoding="utf-8") == original
 
 
+def test_messages_returns_503_when_config_is_invalid(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("text: [not-a-backend]\nmultimodal: {}\n", encoding="utf-8")
+    old_errors = router.stats["errors"]
+
+    with with_config_path(config_path):
+        with TestClient(router.create_app()) as client:
+            response = client.post("/v1/messages", json={"model": "claude-test", "messages": []})
+
+    assert response.status_code == 503
+    assert response.json() == {"error": "Service unavailable: config invalid"}
+    assert router.stats["errors"] == old_errors + 1
+
+
 def test_status_page_uses_external_template():
     template_path = Path(router.__file__).with_name("index.html")
 
