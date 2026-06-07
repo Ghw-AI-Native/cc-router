@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import time
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
@@ -357,6 +358,15 @@ async def status_page(req: Request) -> HTMLResponse:
 # ── App factory ─────────────────────────────────────────────────────
 
 
+@asynccontextmanager
+async def lifespan(app: Starlette):
+    app.state.client = httpx.AsyncClient(timeout=TIMEOUT)
+    try:
+        yield
+    finally:
+        await app.state.client.aclose()
+
+
 def create_app() -> Starlette:
     return Starlette(debug=False, routes=[
         Route("/v1/messages", messages, methods=["POST"]),
@@ -368,7 +378,7 @@ def create_app() -> Starlette:
         Route("/api/stats", api_stats, methods=["GET"]),
         Route("/api/presets", api_presets, methods=["GET"]),
         Route("/{path:path}", serve_static, methods=["GET"]),
-    ])
+    ], lifespan=lifespan)
 
 
 # ── Entry point ─────────────────────────────────────────────────────
@@ -417,14 +427,6 @@ def main() -> None:
     logger.info("  Web UI       : http://%s:%d/status", cfg.server.host, cfg.server.port)
 
     app = create_app()
-
-    client = httpx.AsyncClient(timeout=TIMEOUT)
-
-    async def on_shutdown():
-        await client.aclose()
-
-    app.state.client = client
-    app.add_event_handler("shutdown", on_shutdown)
 
     uvicorn.run(app, host=cfg.server.host, port=cfg.server.port, log_level=log_level.lower())
 

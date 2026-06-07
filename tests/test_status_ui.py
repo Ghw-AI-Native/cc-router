@@ -3,6 +3,7 @@ import json
 import shutil
 import subprocess
 
+import httpx
 import pytest
 from starlette.testclient import TestClient
 
@@ -109,6 +110,33 @@ def test_messages_returns_503_when_config_is_invalid(tmp_path):
     assert response.status_code == 503
     assert response.json() == {"error": "Service unavailable: config invalid"}
     assert router.stats["errors"] == old_errors + 1
+
+
+def test_create_app_lifespan_provides_and_closes_http_client():
+    app = router.create_app()
+
+    with TestClient(app) as client:
+        assert isinstance(app.state.client, httpx.AsyncClient)
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert app.state.client.is_closed
+
+
+def test_main_reaches_uvicorn_run_without_legacy_event_handler(monkeypatch):
+    captured = {}
+
+    def fake_run(app, **kwargs):
+        captured["app"] = app
+        captured["kwargs"] = kwargs
+
+    monkeypatch.setattr(router.uvicorn, "run", fake_run)
+
+    router.main()
+
+    assert isinstance(captured["app"], router.Starlette)
+    assert captured["kwargs"]["host"] == router.config_mgr.config.server.host
+    assert captured["kwargs"]["port"] == router.config_mgr.config.server.port
 
 
 def test_status_page_uses_external_template():
